@@ -1,61 +1,50 @@
 import java.util.*;
-class Reservation {
-    private String guestName;
-    private String roomType;
-    private int nights;
 
-    public Reservation(String guestName, String roomType, int nights) {
-        this.guestName = guestName;
-        this.roomType = roomType;
-        this.nights = nights;
-    }
+class InvalidBookingException extends Exception {
 
-    @Override
-    public String toString() {
-        return "Guest: " + guestName +
-                ", Room Type: " + roomType +
-                ", Nights: " + nights;
+    public InvalidBookingException(String message) {
+        super(message);
     }
 }
 
-class BookingHistory {
+class RoomInventory {
 
-    private List<Reservation> confirmedReservations;
+    private Map<String, Integer> rooms;
 
-    public BookingHistory() {
-        confirmedReservations = new ArrayList<>();
+    public RoomInventory() {
+        rooms = new HashMap<>();
+        rooms.put("DELUXE", 2);
+        rooms.put("SUITE", 1);
+        rooms.put("STANDARD", 3);
     }
 
-    public void addReservation(Reservation reservation) {
-        if (reservation != null) {
-            confirmedReservations.add(reservation);
-        }
+    public boolean isAvailable(String roomType) {
+        return rooms.containsKey(roomType) && rooms.get(roomType) > 0;
     }
 
-    public List<Reservation> getReservations() {
-        return confirmedReservations;
+    public void bookRoom(String roomType) {
+        rooms.put(roomType, rooms.get(roomType) - 1);
     }
 }
 
-class BookingReportService {
+class ReservationValidator {
 
-    public void generateReport(BookingHistory history) {
+    public void validate(String guestName, String roomType, RoomInventory inventory)
+            throws InvalidBookingException {
 
-        List<Reservation> reservations = history.getReservations();
-
-        System.out.println("\nBooking History Report");
-        System.out.println("----------------------");
-
-        if (reservations.isEmpty()) {
-            System.out.println("No bookings available.");
-            return;
+        if (guestName == null || guestName.trim().isEmpty()) {
+            throw new InvalidBookingException("Guest name cannot be empty.");
         }
 
-        for (Reservation r : reservations) {
-            System.out.println(r);
+        if (roomType == null || roomType.trim().isEmpty()) {
+            throw new InvalidBookingException("Room type cannot be empty.");
         }
 
-        System.out.println("\nTotal Bookings: " + reservations.size());
+        roomType = roomType.toUpperCase();
+
+        if (!inventory.isAvailable(roomType)) {
+            throw new InvalidBookingException("Invalid or unavailable room type selected.");
+        }
     }
 }
 
@@ -63,13 +52,30 @@ public class HotelBookingApp {
 
     public static void main(String[] args) {
 
-        BookingHistory history = new BookingHistory();
+        Scanner scanner = new Scanner(System.in);
 
-        history.addReservation(new Reservation("Alice", "Deluxe", 2));
-        history.addReservation(new Reservation("Bob", "Suite", 3));
-        history.addReservation(new Reservation("Charlie", "Standard", 1));
+        RoomInventory inventory = new RoomInventory();
+        ReservationValidator validator = new ReservationValidator();
 
-        BookingReportService reportService = new BookingReportService();
-        reportService.generateReport(history);
+        try {
+            System.out.println("Booking Validation");
+
+            System.out.print("Enter guest name: ");
+            String name = scanner.nextLine();
+
+            System.out.print("Enter room type (DELUXE/SUITE/STANDARD): ");
+            String roomType = scanner.nextLine();
+
+            validator.validate(name, roomType, inventory);
+
+            inventory.bookRoom(roomType.toUpperCase());
+
+            System.out.println("Booking successful!");
+
+        } catch (InvalidBookingException e) {
+            System.out.println("Booking failed: " + e.getMessage());
+        } finally {
+            scanner.close();
+        }
     }
 }
